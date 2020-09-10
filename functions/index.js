@@ -2,19 +2,12 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const express = require("express");
 // Call the express function to
-var bodyParser = require('body-parser')
+// var bodyParser = require('body-parser')
 const app = express(); 
-app.use(bodyParser.json());
-
+// app.use(bodyParser.json());
+const firebase = require("firebase");
 // Initialize our app:
 admin.initializeApp();
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-/* exports.helloWorld = functions.https.onRequest((request, response) => {
-   functions.logger.info("Hello logs!", {structuredData: true});
-   response.send("Hello from Firebase!");
-}); */
 
 // Note: We will be using express to make our code more compact and readable
 app.get("/getRecipes", (request, response) => {
@@ -28,7 +21,7 @@ app.get("/getRecipes", (request, response) => {
 
             recipes.push(doc.data());
          });
-         console.log("RECIPES: "+ JSON.stringify(recipes));
+         // console.log("RECIPES: "+ JSON.stringify(recipes));
          // By this time the recipes array should be populated by the data
          return response.json({ recipes });
    // Make sure to catch any errors 
@@ -38,27 +31,29 @@ app.get("/getRecipes", (request, response) => {
 
 // POST request 
 
-app.post("/createNewRecipe", (req, res) => {
+app.post("/createNewRecipe", (request, response) => {
    // We want to seperate our ingredients array by comma
    // ERRORS: request.body is undefined, request doesn't work --> express?
-   console.log("INGREDIENTS: ", req.body);
-   const ingredients = req.body.ingredients.split(",");
+   var ingredientStr = request.body.ingredients + "";
+   const ingredients = ingredientStr.split(",");
+   ingredients.pop();
    const newRecipe = {
-      title: req.body.title,
+      title: request.body.title,
       // Convert string to an integer
-      rating: parseInt(String(req.body.rating)),
-      imageURL: req.body.imageURL,
-      method: req.body.method,
+      rating: parseInt(String(request.body.rating)),
+      imageURL: request.body.imageURL,
+      method: request.body.method,
       ingredients: ingredients, 
-      type: req.body.type, 
+      type: request.body.type, 
    };
-   admin.firestore().collection("recipes").add(newRecipe).then(data => {
-      return reponse.json({
-         status: "Success", 
-         details: `recipe with ID ${data.id} added`,
-      });
-   }).catch((err) => response.status(500).json({error: err.code}));
-})
+
+   admin.firestore().collection('recipes').add(newRecipe).then((data) => {
+         response.json({ message: `recipe with ID ${data.id} added` });
+   })
+   .catch((err) => {
+      response.status(500).json({ status: "failed", error: err.code });
+   })
+});
 
 // We can also specify region
-exports.api = functions.region("asia-east2").https.onRequest(app);
+exports.api = functions.https.onRequest(app);
